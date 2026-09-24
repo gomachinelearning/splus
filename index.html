@@ -17,7 +17,7 @@ button.primary{background:#63d7b0;color:#06251d;border:0;font-weight:800} .progr
 .pbqrow{margin:14px 0;padding:12px;background:#14223d;border-radius:12px} .pbqrow label{display:block;margin-bottom:8px} .pbqrow select{width:100%}
 .note{font-size:13px;color:#9bb7e6} @media(max-width:700px){.stats{grid-template-columns:1fr 1fr}h1{font-size:32px}.qcard{padding:20px}}
 </style></head><body><div class="wrap">
-<h1>Security+ Quiz Lab</h1><div class="sub">Practice Exam A — 90 questions from your SecPlus.pdf<br><small>Build 2 · GitHub-safe question data</small></div>
+<h1>Security+ Quiz Lab</h1><div class="sub">Practice Exam A — 90 questions from your SecPlus.pdf<br><small>Build 3 · Remembers your last question</small></div>
 <div class="stats"><div class="card"><div class="lab">Answered</div><div class="num" id="answered">0</div></div><div class="card"><div class="lab">Correct</div><div class="num" id="correct">0</div></div><div class="card"><div class="lab">Accuracy</div><div class="num" id="accuracy">0%</div></div><div class="card"><div class="lab">Missed</div><div class="num" id="missed">0</div></div></div>
 <div class="toolbar"><button id="shuffle">Shuffle</button><button id="missedBtn">Review missed only</button><button id="reset">Reset progress</button></div>
 <div class="progress"><div class="bar" id="bar"></div></div><div id="app"></div>
@@ -28,6 +28,14 @@ const KEY='secplusExamA90_rebuilt_v2';
 let state={};
 try { state=JSON.parse(localStorage.getItem(KEY)||'{}'); } catch(e) { state={}; }
 let order=BANK.map((_,i)=>i), pos=0, missedOnly=false, tempSel=[];
+const NAVKEY='secplusExamA90_nav_v3';
+try {
+  const nav=JSON.parse(localStorage.getItem(NAVKEY)||'{}');
+  if(Array.isArray(nav.order) && nav.order.length===BANK.length) order=nav.order;
+  if(Number.isInteger(nav.pos) && nav.pos>=0) pos=nav.pos;
+  if(typeof nav.missedOnly==='boolean') missedOnly=nav.missedOnly;
+} catch(e) {}
+function saveNav(){ try { localStorage.setItem(NAVKEY,JSON.stringify({order,pos,missedOnly})); } catch(e) {} }
 
 const $=id=>document.getElementById(id);
 const letters='ABCDEFG';
@@ -56,6 +64,7 @@ function render(){
     updateStats(); return;
   }
   pos=Math.max(0,Math.min(pos,arr.length-1));
+  saveNav();
   const q=BANK[arr[pos]], st=state[q.id];
   let body='';
 
@@ -130,9 +139,9 @@ function render(){
       tempSel=[]; save(); render();
     });
   }
-  $('prev').addEventListener('click',()=>{ if(pos>0){pos--;tempSel=[];render();} });
+  $('prev').addEventListener('click',()=>{ if(pos>0){pos--;tempSel=[];saveNav();render();} });
   $('next').addEventListener('click',()=>{
-    if(pos<active().length-1){pos++;tempSel=[];render();}
+    if(pos<active().length-1){pos++;tempSel=[];saveNav();render();}
     else alert('You reached the end of Practice Exam A.');
   });
   updateStats();
@@ -140,16 +149,17 @@ function render(){
 
 $('reset').addEventListener('click',()=>{
   if(confirm('Reset all Practice Exam A progress?')){
-    try{localStorage.removeItem(KEY);}catch(e){}
-    state={}; order=BANK.map((_,i)=>i); pos=0; missedOnly=false; tempSel=[];
+    try{localStorage.removeItem(KEY);localStorage.removeItem(NAVKEY);}catch(e){}
+    state={}; order=BANK.map((_,i)=>i); pos=0; missedOnly=false; tempSel=[]; saveNav();
     $('missedBtn').textContent='Review missed only'; render();
   }
 });
-$('shuffle').addEventListener('click',()=>{ order=[...order].sort(()=>Math.random()-.5); pos=0; tempSel=[]; render(); });
+$('shuffle').addEventListener('click',()=>{ order=[...order].sort(()=>Math.random()-.5); pos=0; tempSel=[]; saveNav(); render(); });
 $('missedBtn').addEventListener('click',()=>{
   missedOnly=!missedOnly;
   $('missedBtn').textContent=missedOnly?'Show all questions':'Review missed only';
-  pos=0; tempSel=[]; render();
+  pos=0; tempSel=[]; saveNav(); render();
 });
+window.addEventListener('pagehide',saveNav);
 render();
 </script></body></html>
